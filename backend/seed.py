@@ -8,7 +8,7 @@ import json
 
 def seed_database(db: Session):
     """Seed database with demo data if empty."""
-    if db.query(User).count() > 0:
+    if db.query(Job).count() > 0:
         return
 
     # Create admin user

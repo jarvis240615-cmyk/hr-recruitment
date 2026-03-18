@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import ErrorBoundary from './components/ErrorBoundary';
 import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +10,7 @@ import Pipeline from './pages/Pipeline';
 import Candidates from './pages/Candidates';
 import CandidateDetail from './pages/CandidateDetail';
 import Analytics from './pages/Analytics';
+import Scorecards from './pages/Scorecards';
 import Apply from './pages/Apply';
 
 function ProtectedLayout() {
@@ -26,23 +29,27 @@ function ProtectedLayout() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/apply/:jobId" element={<Apply />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/apply/:jobId" element={<Apply />} />
 
-        <Route element={<ProtectedLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/jobs" element={<Jobs />} />
-          <Route path="/jobs/:id" element={<JobDetail />} />
-          <Route path="/pipeline" element={<Pipeline />} />
-          <Route path="/candidates" element={<Candidates />} />
-          <Route path="/candidates/:id" element={<CandidateDetail />} />
-          <Route path="/analytics" element={<Analytics />} />
-        </Route>
+          <Route element={<ProtectedLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/jobs/:id" element={<JobDetail />} />
+            <Route path="/pipeline" element={<Pipeline />} />
+            <Route path="/candidates" element={<Candidates />} />
+            <Route path="/candidates/:id" element={<CandidateDetail />} />
+            <Route path="/scorecards" element={<Scorecards />} />
+            <Route path="/analytics" element={<Analytics />} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

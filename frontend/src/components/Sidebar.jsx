@@ -5,6 +5,7 @@ const navItems = [
   { to: '/jobs', label: 'Jobs', icon: '💼' },
   { to: '/pipeline', label: 'Pipeline', icon: '🔄' },
   { to: '/candidates', label: 'Candidates', icon: '👥' },
+  { to: '/scorecards', label: 'Scorecards', icon: '📋' },
   { to: '/analytics', label: 'Analytics', icon: '📈' },
 ];
 

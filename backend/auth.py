@@ -10,6 +10,8 @@ import models
 import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "hr-recruitment-secret-key-change-in-production")
+if SECRET_KEY == "hr-recruitment-secret-key-change-in-production":
+    print("WARNING: Using default JWT secret key. Set SECRET_KEY env var in production.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 

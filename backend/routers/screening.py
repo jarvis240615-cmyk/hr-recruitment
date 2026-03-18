@@ -77,6 +77,8 @@ Candidate Info:
 @router.post("/{application_id}/rescore")
 def rescore_application(application_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """Re-run AI screening for an application."""
+    if current_user.role not in ("admin", "recruiter"):
+        raise HTTPException(status_code=403, detail="Only admin or recruiter can trigger rescoring")
     app = db.query(models.Application).filter(models.Application.id == application_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")

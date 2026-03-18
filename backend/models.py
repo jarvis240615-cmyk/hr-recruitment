@@ -82,7 +82,6 @@ class Interview(Base):
     location = Column(String, default="Video Call")
     notes = Column(Text)
     status = Column(String, default="pending")  # pending, confirmed, completed, cancelled
-    available_slots = Column(Text)  # JSON string of available slots
     candidate_selected = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     application = relationship("Application", back_populates="interviews")
@@ -137,4 +136,6 @@ class Activity(Base):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(Text, nullable=False)
     activity_type = Column(String, nullable=False)  # application, stage_change, interview, screening
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", backref="activities")

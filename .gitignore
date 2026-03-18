@@ -1,19 +1,12 @@
-# Python
 __pycache__/
-*.py[cod]
+*.pyc
 *.pyo
-.env
-venv/
-.venv/
 *.db
-chroma_db/
-backend/uploads/
-
-# Node
-frontend/node_modules/
-frontend/dist/
-frontend/.env
-
-# Misc
+*.sqlite
+uploads/
+.env
+node_modules/
+dist/
 .DS_Store
-*.log
+venv/
+*.egg-info/

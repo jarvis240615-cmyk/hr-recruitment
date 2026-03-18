@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from typing import Optional, List
 from database import get_db
 from auth import get_current_user
+from utils.errors import APIError
+from utils.pagination import PaginatedResponse
 import models
 from datetime import datetime
 
@@ -23,10 +25,14 @@ class CandidateResponse(BaseModel):
         from_attributes = True
 
 
-@router.get("", response_model=List[CandidateResponse])
-def list_candidates(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    candidates = db.query(models.Candidate).order_by(models.Candidate.created_at.desc()).all()
-    result = []
+@router.get("")
+def list_candidates(page: int = 1, limit: int = 50, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    total = db.query(models.Candidate).count()
+    skip = (page - 1) * limit
+    candidates = db.query(models.Candidate).options(
+        joinedload(models.Candidate.applications).joinedload(models.Application.job)
+    ).order_by(models.Candidate.created_at.desc()).offset(skip).limit(limit).all()
+    items = []
     for c in candidates:
         apps = []
         for a in c.applications:
@@ -38,7 +44,7 @@ def list_candidates(db: Session = Depends(get_db), current_user: models.User = D
                 "ai_score": a.ai_score,
                 "applied_at": a.applied_at.isoformat() if a.applied_at else None,
             })
-        result.append({
+        items.append({
             "id": c.id,
             "full_name": c.full_name,
             "email": c.email,
@@ -47,14 +53,14 @@ def list_candidates(db: Session = Depends(get_db), current_user: models.User = D
             "created_at": c.created_at,
             "applications": apps,
         })
-    return result
+    return PaginatedResponse.create(items=items, total=total, page=page, limit=limit)
 
 
 @router.get("/{candidate_id}")
 def get_candidate(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if not candidate:
-        raise HTTPException(status_code=404, detail="Candidate not found")
+        raise APIError(status_code=404, error="NotFound", message="Candidate not found", details={"id": candidate_id})
     apps = []
     for a in candidate.applications:
         apps.append({

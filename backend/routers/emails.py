@@ -69,6 +69,7 @@ def send_email(
     activity = models.Activity(
         description=f"{current_user.full_name} sent {data.email_type} email to {data.to_email}",
         activity_type="email",
+        user_id=current_user.id,
     )
     db.add(activity)
     db.commit()

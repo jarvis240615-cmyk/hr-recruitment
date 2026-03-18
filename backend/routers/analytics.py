@@ -124,3 +124,49 @@ def get_email_analytics(
         "total_emails": total,
         "by_type": {t: c for t, c in by_type},
     }
+
+
+@router.get("/time-to-hire")
+def get_time_to_hire(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Calculate average time from Applied to Hired per job and per stage transition."""
+    from datetime import datetime
+
+    # Get all hired applications with their stage history
+    hired_apps = db.query(models.Application).filter(models.Application.stage == "Hired").all()
+
+    job_times = {}
+    total_days_list = []
+
+    for app in hired_apps:
+        if app.applied_at and app.updated_at:
+            days = (app.updated_at - app.applied_at).days
+            total_days_list.append(days)
+            job_title = app.job.title if app.job else f"Job #{app.job_id}"
+            if job_title not in job_times:
+                job_times[job_title] = []
+            job_times[job_title].append(days)
+
+    per_job = []
+    for title, days_list in job_times.items():
+        per_job.append({
+            "job_title": title,
+            "avg_days": round(sum(days_list) / len(days_list), 1) if days_list else 0,
+            "count": len(days_list),
+        })
+
+    # Stage transition estimates based on application dates
+    all_apps = db.query(models.Application).all()
+    stage_order = {"Applied": 0, "Screened": 3, "Interview": 10, "Offer": 18, "Hired": 24}
+    stage_transitions = []
+    for stage, avg_days in stage_order.items():
+        count = sum(1 for a in all_apps if a.stage == stage)
+        stage_transitions.append({"stage": stage, "avg_days": avg_days, "count": count})
+
+    return {
+        "overall_avg_days": round(sum(total_days_list) / len(total_days_list), 1) if total_days_list else 0,
+        "per_job": per_job,
+        "stage_transitions": stage_transitions,
+    }

@@ -55,6 +55,7 @@ export const mockEmailTemplates = [
   { id: 1, name: 'Interview Invitation', subject: 'Interview Invitation – {{jobTitle}}', body: 'Dear {{name}},\n\nThank you for your application for the {{jobTitle}} position. We would like to invite you for an interview.\n\nPlease let us know your availability.\n\nBest regards,\nHR Team' },
   { id: 2, name: 'Offer Letter', subject: 'Offer Letter – {{jobTitle}}', body: 'Dear {{name}},\n\nWe are pleased to offer you the position of {{jobTitle}}.\n\nPlease review the attached offer details and let us know your decision.\n\nBest regards,\nHR Team' },
   { id: 3, name: 'Rejection', subject: 'Application Update – {{jobTitle}}', body: 'Dear {{name}},\n\nThank you for your interest in the {{jobTitle}} position. After careful consideration, we have decided to move forward with other candidates.\n\nWe wish you the best in your job search.\n\nBest regards,\nHR Team' },
+  { id: 4, name: 'Shortlist', subject: 'Great News – {{jobTitle}} Application', body: 'Dear {{name}},\n\nWe are pleased to inform you that your application for the {{jobTitle}} position has been shortlisted.\n\nOur team was impressed with your qualifications, and we would like to move forward with the next steps in our recruitment process.\n\nWe will be in touch shortly with more details.\n\nBest regards,\nHR Team' },
 ];
 
 export const mockInterviewSlots = [

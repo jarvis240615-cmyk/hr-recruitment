@@ -90,6 +90,7 @@ def create_scorecard(
     activity = models.Activity(
         description=f"{current_user.full_name} submitted scorecard for application #{data.application_id}",
         activity_type="scorecard",
+        user_id=current_user.id,
     )
     db.add(activity)
     db.commit()
