@@ -139,7 +139,13 @@ def create_job(job_data: JobCreate, db: Session = Depends(get_db), current_user:
     activity = models.Activity(description=f"New job posted: {job.title}", activity_type="job_created", user_id=current_user.id)
     db.add(activity)
     db.commit()
-    return {**job.__dict__, "application_count": 0}
+    return {
+        "id": job.id, "title": job.title, "department": job.department,
+        "location": job.location, "description": job.description,
+        "requirements": job.requirements, "salary_range": job.salary_range,
+        "is_active": job.is_active, "created_at": job.created_at,
+        "application_count": 0,
+    }
 
 
 @router.put("/{job_id}", response_model=JobResponse)
@@ -153,7 +159,13 @@ def update_job(job_id: int, job_data: JobUpdate, db: Session = Depends(get_db), 
         setattr(job, key, value)
     db.commit()
     db.refresh(job)
-    return {**job.__dict__, "application_count": len(job.applications)}
+    return {
+        "id": job.id, "title": job.title, "department": job.department,
+        "location": job.location, "description": job.description,
+        "requirements": job.requirements, "salary_range": job.salary_range,
+        "is_active": job.is_active, "created_at": job.created_at,
+        "application_count": len(job.applications),
+    }
 
 
 @router.delete("/{job_id}")

@@ -8,29 +8,44 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from database import Base, get_db
-from main import app
 from auth import get_password_hash
 import models
 
 
 @pytest.fixture(scope="function")
-def db_session():
-    """Create a fresh in-memory SQLite database for each test."""
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def db_engine():
+    """Create a fresh in-memory SQLite engine for each test."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
+    yield engine
+    Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(scope="function")
+def db_session(db_engine):
+    """Create a session bound to the test engine."""
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
     session = TestingSessionLocal()
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
 def client(db_session):
     """FastAPI test client with overridden database dependency."""
+    from main import app, _rate_limit_store
+
+    # Clear rate limiter between tests
+    _rate_limit_store.clear()
+
     def override_get_db():
         try:
             yield db_session
@@ -38,7 +53,7 @@ def client(db_session):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
+    with TestClient(app, raise_server_exceptions=False) as c:
         yield c
     app.dependency_overrides.clear()
 
