@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import { mockCandidates } from '../api/mockData';
 import ScoreBar from '../components/ScoreBar';
@@ -11,9 +12,15 @@ export default function Candidates() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [scoreFilter, setScoreFilter] = useState('all');
+  const [showModal, setShowModal] = useState(false);
+  const [jobs, setJobs] = useState([]);
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', job_id: '', cover_letter: '' });
+  const [resume, setResume] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadCandidates();
+    loadJobs();
   }, []);
 
   const loadCandidates = async () => {
@@ -36,6 +43,41 @@ export default function Candidates() {
       setCandidates(mockCandidates);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadJobs = async () => {
+    try {
+      const res = await api.get('/api/jobs/public');
+      setJobs(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      // silently ignore
+    }
+  };
+
+  const handleApply = async (e) => {
+    e.preventDefault();
+    if (!form.job_id) { toast.error('Please select a job'); return; }
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append('full_name', form.full_name);
+      fd.append('email', form.email);
+      if (form.phone) fd.append('phone', form.phone);
+      if (form.cover_letter) fd.append('cover_letter', form.cover_letter);
+      if (resume) fd.append('resume', resume);
+      await api.post(`/api/applications/apply/${form.job_id}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Application submitted successfully!');
+      setShowModal(false);
+      setForm({ full_name: '', email: '', phone: '', job_id: '', cover_letter: '' });
+      setResume(null);
+      loadCandidates();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to submit application');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -62,7 +104,10 @@ export default function Candidates() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
+        <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">+ Add Candidate</button>
+      </div>
 
       <div className="flex items-center gap-4">
         <input
@@ -145,6 +190,102 @@ export default function Candidates() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-white/20">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Add Candidate</h2>
+                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+              </div>
+              <form onSubmit={handleApply} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={form.full_name}
+                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
+                  <input
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="john@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Job to Apply For <span className="text-red-500">*</span></label>
+                  <select
+                    required
+                    value={form.job_id}
+                    onChange={(e) => setForm({ ...form, job_id: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a job...</option>
+                    {jobs.map((job) => (
+                      <option key={job.id} value={job.id}>{job.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cover Letter</label>
+                  <textarea
+                    value={form.cover_letter}
+                    onChange={(e) => setForm({ ...form, cover_letter: e.target.value })}
+                    rows={3}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Tell us why you're a great fit..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Resume</label>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => setResume(e.target.files[0] || null)}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {submitting ? 'Submitting...' : 'Submit Application'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>

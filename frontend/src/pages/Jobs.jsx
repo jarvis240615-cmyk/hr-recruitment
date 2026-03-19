@@ -161,6 +161,7 @@ export default function Jobs() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{job.application_count ?? job.applicants ?? 0}</td>
                     <td className="px-4 py-3 text-right">
+                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/apply/${job.id}`); toast.success('Apply link copied!'); }} aria-label={`Copy apply link for ${job.title}`} className="text-xs text-gray-500 hover:text-blue-600 mr-3">Copy Apply Link</button>
                       <button onClick={() => openForm(job)} aria-label={`Edit ${job.title}`} className="text-xs text-gray-500 hover:text-blue-600 mr-3">Edit</button>
                       <button onClick={() => handleDelete(job.id)} aria-label={`Delete ${job.title}`} className="text-xs text-gray-500 hover:text-red-600">Delete</button>
                     </td>
