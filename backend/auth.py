@@ -1,3 +1,4 @@
+"""Auth module — uses hashlib (stdlib only), zero external crypto deps."""
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt as PyJWT
@@ -7,6 +8,9 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import os
+import hashlib
+import hmac
+import secrets
 
 SECRET_KEY = os.getenv("SECRET_KEY", "hr-recruitment-secret-key-change-in-production")
 ALGORITHM = "HS256"
@@ -17,35 +21,27 @@ if SECRET_KEY == "hr-recruitment-secret-key-change-in-production":
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
-# IMPORTANT: Use argon2 only — bcrypt has a Python 3.13 compatibility bug
-from passlib.context import CryptContext
-pwd_context = CryptContext(
-    schemes=["argon2"],
-    deprecated="auto",
-    argon2__rounds=4,
-    argon2__memory_cost=65536,
-    argon2__parallelism=2,
-)
-
+# Pure stdlib password hashing — no passlib, no bcrypt, no external deps
+def get_password_hash(password: str) -> str:
+    salt = secrets.token_hex(32)
+    key = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 260000)
+    return f"pbkdf2:{salt}:{key.hex()}"
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    # Handle both argon2 and legacy bcrypt hashes during migration
     try:
-        return pwd_context.verify(plain_password, hashed_password)
+        if hashed_password.startswith("pbkdf2:"):
+            _, salt, stored_key = hashed_password.split(":", 2)
+            key = hashlib.pbkdf2_hmac("sha256", plain_password.encode(), salt.encode(), 260000)
+            return hmac.compare_digest(key.hex(), stored_key)
+        return False
     except Exception:
         return False
-
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return PyJWT.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
