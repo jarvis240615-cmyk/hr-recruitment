@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: hr-recruitment-api
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  - type: web
+    name: hr-recruitment-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npx serve dist -l $PORT
+    envVars:
+      - key: VITE_API_URL
+        sync: false
