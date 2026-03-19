@@ -44,7 +44,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,https://jarvis240615-cmyk.github.io").split(",")
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,https://jarvis240615-cmyk.github.io,https://hr-recruitment-ebr10pjkf-jarvis240615-cmyks-projects.vercel.app,https://*.vercel.app,https://ppm-segments-remember-greeting.trycloudflare.com").split(",")
 
 app.add_middleware(
     CORSMiddleware,
