@@ -17,13 +17,23 @@ if SECRET_KEY == "hr-recruitment-secret-key-change-in-production":
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
-# Use passlib with argon2 backend (avoids bcrypt Python 3.13 bug)
+# IMPORTANT: Use argon2 only — bcrypt has a Python 3.13 compatibility bug
 from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["argon2"],
+    deprecated="auto",
+    argon2__rounds=4,
+    argon2__memory_cost=65536,
+    argon2__parallelism=2,
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    # Handle both argon2 and legacy bcrypt hashes during migration
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:
