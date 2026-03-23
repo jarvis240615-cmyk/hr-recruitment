@@ -1,7 +1,8 @@
 import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, SessionLocal
 import models
@@ -111,3 +112,13 @@ def startup_event():
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "version": "2.0.0"}
+
+
+# Serve frontend static files (must be after all API routes)
+_static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(_static_dir):
+    app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    def serve_frontend(full_path: str):
+        return FileResponse(os.path.join(_static_dir, "index.html"))
