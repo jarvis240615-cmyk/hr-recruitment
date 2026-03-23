@@ -1,12 +1,8 @@
 [phases.setup]
-nixPkgs = ["python313"]
+nixPkgs = ["python311"]
 
 [phases.install]
-cmds = [
-  "rm -rf /app/.venv",
-  "pip install --no-cache-dir --ignore-installed passlib bcrypt",
-  "pip install --no-cache-dir -r requirements.txt"
-]
+cmds = ["pip install -r requirements.txt"]
 
 [start]
 cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
