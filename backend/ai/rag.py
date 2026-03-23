@@ -4,26 +4,25 @@ import json
 import uuid
 from pathlib import Path
 
-import chromadb
-from sentence_transformers import SentenceTransformer
-
 _CHROMA_PATH = str(Path(__file__).resolve().parent.parent.parent / "chroma_db")
 _COLLECTION_NAME = "hiring_decisions"
 
-_model: SentenceTransformer | None = None
-_client: chromadb.ClientAPI | None = None
+_model = None
+_client = None
 
 
-def _get_embedding_model() -> SentenceTransformer:
+def _get_embedding_model():
     global _model
     if _model is None:
+        from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer("all-MiniLM-L6-v2")
     return _model
 
 
-def _get_collection() -> chromadb.Collection:
+def _get_collection():
     global _client
     if _client is None:
+        import chromadb
         _client = chromadb.PersistentClient(path=_CHROMA_PATH)
     return _client.get_or_create_collection(
         name=_COLLECTION_NAME,
