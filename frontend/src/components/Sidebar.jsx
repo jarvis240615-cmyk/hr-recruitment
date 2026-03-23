@@ -52,7 +52,7 @@ export default function Sidebar() {
         <button
           onClick={() => {
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            window.location.href = '/hr-recruitment/login';
           }}
           className="mt-3 w-full text-xs text-gray-400 hover:text-white transition-colors text-left"
         >
