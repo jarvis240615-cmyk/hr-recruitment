@@ -18,9 +18,9 @@ function ProtectedLayout() {
   if (!token) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#020817' }}>
       <Sidebar />
-      <main className="flex-1 p-6 overflow-auto">
+      <main style={{ flex: 1, padding: '1.5rem', overflow: 'auto', color: 'white' }}>
         <Outlet />
       </main>
     </div>

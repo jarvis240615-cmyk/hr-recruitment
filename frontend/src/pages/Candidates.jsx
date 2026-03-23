@@ -4,8 +4,30 @@ import toast from 'react-hot-toast';
 import api from '../api/axios';
 import { mockCandidates } from '../api/mockData';
 import ScoreBar from '../components/ScoreBar';
-import { SkeletonTableRows } from '../components/SkeletonLoader';
-import EmptyState from '../components/EmptyState';
+
+const glassCard = {
+  background: 'rgba(10,15,40,0.7)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: '20px',
+};
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '10px',
+  color: 'rgba(255,255,255,0.9)',
+  padding: '0.55rem 0.85rem',
+  fontSize: '0.85rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+};
+
+const STAGE_COLORS = {
+  Rejected: '#ef4444', Offer: '#8b5cf6', Interview: '#f59e0b',
+  Applied: '#3b82f6', Screened: '#8b5cf6', Hired: '#22c55e',
+};
 
 export default function Candidates() {
   const [candidates, setCandidates] = useState([]);
@@ -18,10 +40,7 @@ export default function Candidates() {
   const [resume, setResume] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadCandidates();
-    loadJobs();
-  }, []);
+  useEffect(() => { loadCandidates(); loadJobs(); }, []);
 
   const loadCandidates = async () => {
     setLoading(true);
@@ -29,9 +48,7 @@ export default function Candidates() {
       const res = await api.get('/api/candidates');
       const data = res.data.items || res.data;
       const mapped = (Array.isArray(data) ? data : []).map((c) => ({
-        id: c.id,
-        name: c.full_name || c.name,
-        email: c.email,
+        id: c.id, name: c.full_name || c.name, email: c.email,
         jobTitle: c.applications?.[0]?.job_title || '',
         stage: c.applications?.[0]?.stage || 'Applied',
         aiScore: c.applications?.[0]?.ai_score || 0,
@@ -50,9 +67,7 @@ export default function Candidates() {
     try {
       const res = await api.get('/api/jobs/public');
       setJobs(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      // silently ignore
-    }
+    } catch {}
   };
 
   const handleApply = async (e) => {
@@ -66,9 +81,7 @@ export default function Candidates() {
       if (form.phone) fd.append('phone', form.phone);
       if (form.cover_letter) fd.append('cover_letter', form.cover_letter);
       if (resume) fd.append('resume', resume);
-      await api.post(`/api/applications/apply/${form.job_id}`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await api.post(`/api/applications/apply/${form.job_id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       toast.success('Application submitted successfully!');
       setShowModal(false);
       setForm({ full_name: '', email: '', phone: '', job_id: '', cover_letter: '' });
@@ -83,48 +96,37 @@ export default function Candidates() {
 
   const filtered = useMemo(() => {
     return candidates.filter((c) => {
-      const name = c.name || c.full_name || '';
-      const email = c.email || '';
-      const jobTitle = c.jobTitle || '';
-      const matchesSearch =
-        name.toLowerCase().includes(search.toLowerCase()) ||
-        email.toLowerCase().includes(search.toLowerCase()) ||
-        jobTitle.toLowerCase().includes(search.toLowerCase());
-
+      const name = c.name || ''; const email = c.email || ''; const jobTitle = c.jobTitle || '';
+      const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || email.toLowerCase().includes(search.toLowerCase()) || jobTitle.toLowerCase().includes(search.toLowerCase());
       const score = c.aiScore || 0;
-      const matchesScore =
-        scoreFilter === 'all' ||
-        (scoreFilter === 'high' && score >= 80) ||
-        (scoreFilter === 'medium' && score >= 60 && score < 80) ||
-        (scoreFilter === 'low' && score < 60);
-
+      const matchesScore = scoreFilter === 'all' || (scoreFilter === 'high' && score >= 80) || (scoreFilter === 'medium' && score >= 60 && score < 80) || (scoreFilter === 'low' && score < 60);
       return matchesSearch && matchesScore;
     });
   }, [candidates, search, scoreFilter]);
 
+  const getInitials = (name) => name ? name.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase() : '??';
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
-        <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">+ Add Candidate</button>
+    <div style={{ color: 'rgba(255,255,255,0.9)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+        <h1 style={{
+          fontSize: '2rem', fontWeight: 900,
+          background: 'linear-gradient(135deg, #a78bfa 0%, #3b82f6 50%, #22d3ee 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          letterSpacing: '-0.02em',
+        }}>Candidates</h1>
+        <button onClick={() => setShowModal(true)} style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 0 20px rgba(59,130,246,0.3)' }}>+ Add Candidate</button>
       </div>
 
-      <div className="flex items-center gap-4">
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search candidates..."
-          aria-label="Search candidates"
-          className="flex-1 max-w-sm border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Search candidates..."
+          style={{ ...inputStyle, flex: '1', minWidth: '200px', maxWidth: '360px' }}
         />
-        <label htmlFor="score-filter" className="sr-only">Filter by score</label>
-        <select
-          id="score-filter"
-          value={scoreFilter}
-          onChange={(e) => setScoreFilter(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm"
-        >
+        <select value={scoreFilter} onChange={e => setScoreFilter(e.target.value)} style={{ ...inputStyle }}>
           <option value="all">All Scores</option>
           <option value="high">High (80+)</option>
           <option value="medium">Medium (60-79)</option>
@@ -133,158 +135,115 @@ export default function Candidates() {
       </div>
 
       {!loading && filtered.length === 0 && candidates.length === 0 ? (
-        <EmptyState
-          icon="👥"
-          title="No candidates yet"
-          message="Candidates will appear here once they apply to your job postings."
-        />
+        <div style={{ ...glassCard, padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.4)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
+          <h3 style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem' }}>No candidates yet</h3>
+          <p style={{ fontSize: '0.85rem' }}>Candidates will appear here once they apply.</p>
+        </div>
       ) : (
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full">
+        <div style={{ ...glassCard, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Name</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Job</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Stage</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">AI Score</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Source</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Applied</th>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                {['Name', 'Job', 'Stage', 'AI Score', 'Source', 'Applied'].map((h) => (
+                  <th key={h} style={{ padding: '0.9rem 1rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonTableRows rows={5} cols={6} />
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
-                    No candidates match your filters
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((c) => (
-                  <tr key={c.id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <Link to={`/candidates/${c.id}`} className="text-sm font-medium text-blue-600 hover:underline">
-                        {c.name}
-                      </Link>
-                      <p className="text-xs text-gray-400">{c.email}</p>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{c.jobTitle}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
-                        c.stage === 'Rejected' ? 'bg-red-50 text-red-700' :
-                        c.stage === 'Offer' ? 'bg-purple-50 text-purple-700' :
-                        c.stage === 'Interview' ? 'bg-orange-50 text-orange-700' :
-                        'bg-blue-50 text-blue-700'
-                      }`}>
-                        {c.stage}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 w-40">
-                      <ScoreBar score={c.aiScore} />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{c.source}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{c.appliedDate}</td>
+                [1,2,3,4,5].map(i => (
+                  <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    {[1,2,3,4,5,6].map(j => (
+                      <td key={j} style={{ padding: '1rem' }}>
+                        <div style={{ height: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)' }} />
+                      </td>
+                    ))}
                   </tr>
                 ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '2.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.88rem' }}>No candidates match your filters</td>
+                </tr>
+              ) : (
+                filtered.map((c) => {
+                  const sc = STAGE_COLORS[c.stage] || '#6b7280';
+                  return (
+                    <tr key={c.id}
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f622, #8b5cf622)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#a78bfa', flexShrink: 0 }}>
+                            {getInitials(c.name)}
+                          </div>
+                          <div>
+                            <Link to={`/candidates/${c.id}`} style={{ fontSize: '0.87rem', fontWeight: 600, color: '#60a5fa', textDecoration: 'none', display: 'block' }}>{c.name}</Link>
+                            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', marginTop: '1px' }}>{c.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>{c.jobTitle}</td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, background: `${sc}22`, color: sc, border: `1px solid ${sc}44` }}>{c.stage}</span>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', width: '160px' }}>
+                        <ScoreBar score={c.aiScore} />
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>{c.source}</td>
+                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>{c.appliedDate}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       )}
 
+      {/* Add candidate modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-white/20">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Add Candidate</h2>
-                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-              </div>
-              <form onSubmit={handleApply} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={form.full_name}
-                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="John Doe"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
-                  <input
-                    type="email"
-                    required
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="john@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="text"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="+1 (555) 123-4567"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Job to Apply For <span className="text-red-500">*</span></label>
-                  <select
-                    required
-                    value={form.job_id}
-                    onChange={(e) => setForm({ ...form, job_id: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select a job...</option>
-                    {jobs.map((job) => (
-                      <option key={job.id} value={job.id}>{job.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cover Letter</label>
-                  <textarea
-                    value={form.cover_letter}
-                    onChange={(e) => setForm({ ...form, cover_letter: e.target.value })}
-                    rows={3}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Tell us why you're a great fit..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Resume</label>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => setResume(e.target.files[0] || null)}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                </div>
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {submitting ? 'Submitting...' : 'Submit Application'}
-                  </button>
-                </div>
-              </form>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+          <div style={{ ...glassCard, width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 80px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Add Candidate</h2>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
             </div>
+            <form onSubmit={handleApply} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[
+                { label: 'Full Name *', field: 'full_name', type: 'text', placeholder: 'John Doe', required: true },
+                { label: 'Email *', field: 'email', type: 'email', placeholder: 'john@example.com', required: true },
+                { label: 'Phone', field: 'phone', type: 'text', placeholder: '+1 (555) 123-4567', required: false },
+              ].map(({ label, field, type, placeholder, required }) => (
+                <div key={field}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
+                  <input type={type} required={required} value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })} style={{ ...inputStyle, width: '100%' }} placeholder={placeholder} />
+                </div>
+              ))}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Job *</label>
+                <select required value={form.job_id} onChange={e => setForm({ ...form, job_id: e.target.value })} style={{ ...inputStyle, width: '100%' }}>
+                  <option value="">Select a job...</option>
+                  {jobs.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Cover Letter</label>
+                <textarea value={form.cover_letter} onChange={e => setForm({ ...form, cover_letter: e.target.value })} rows={3} style={{ ...inputStyle, width: '100%', resize: 'vertical' }} placeholder="Tell us why you're a great fit..." />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resume</label>
+                <input type="file" accept=".pdf,.doc,.docx" onChange={e => setResume(e.target.files[0] || null)} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '0.5rem' }}>
+                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '0.6rem 1.25rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
+                <button type="submit" disabled={submitting} style={{ padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '0.85rem', opacity: submitting ? 0.6 : 1, boxShadow: '0 0 20px rgba(59,130,246,0.3)' }}>
+                  {submitting ? 'Submitting...' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -3,8 +3,27 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import { mockJobs } from '../api/mockData';
-import { SkeletonTableRows } from '../components/SkeletonLoader';
 import EmptyState from '../components/EmptyState';
+
+const glassCard = {
+  background: 'rgba(10,15,40,0.7)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: '20px',
+};
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '10px',
+  color: 'rgba(255,255,255,0.9)',
+  padding: '0.55rem 0.85rem',
+  fontSize: '0.85rem',
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
+};
 
 export default function Jobs() {
   const [jobs, setJobs] = useState([]);
@@ -14,9 +33,7 @@ export default function Jobs() {
   const [form, setForm] = useState({ title: '', department: '', location: '', type: 'Full-time', salary: '', description: '', requirements: '' });
   const [aiLoading, setAiLoading] = useState(false);
 
-  useEffect(() => {
-    loadJobs();
-  }, []);
+  useEffect(() => { loadJobs(); }, []);
 
   const loadJobs = async () => {
     setLoading(true);
@@ -45,21 +62,14 @@ export default function Jobs() {
   const handleSave = async () => {
     try {
       if (editingJob) {
-        await api.put(`/api/jobs/${editingJob.id}`, {
-          title: form.title, department: form.department, location: form.location,
-          description: form.description, requirements: form.requirements, salary_range: form.salary,
-        });
+        await api.put(`/api/jobs/${editingJob.id}`, { title: form.title, department: form.department, location: form.location, description: form.description, requirements: form.requirements, salary_range: form.salary });
         toast.success('Job updated successfully');
       } else {
-        await api.post('/api/jobs', {
-          title: form.title, department: form.department, location: form.location,
-          description: form.description, requirements: form.requirements || 'See description', salary_range: form.salary,
-        });
+        await api.post('/api/jobs', { title: form.title, department: form.department, location: form.location, description: form.description, requirements: form.requirements || 'See description', salary_range: form.salary });
         toast.success('Job created successfully');
       }
       loadJobs();
     } catch {
-      // Fallback to local state
       if (editingJob) {
         setJobs(jobs.map((j) => (j.id === editingJob.id ? { ...j, ...form } : j)));
       } else {
@@ -83,87 +93,108 @@ export default function Jobs() {
     if (!form.title) return;
     setAiLoading(true);
     try {
-      const res = await api.post('/api/jobs/generate-description', {
-        title: form.title,
-        department: form.department || 'General',
-        requirements_brief: form.requirements,
-      });
-      setForm((f) => ({
-        ...f,
-        description: res.data.description || f.description,
-        requirements: res.data.requirements || f.requirements,
-      }));
+      const res = await api.post('/api/jobs/generate-description', { title: form.title, department: form.department || 'General', requirements_brief: form.requirements });
+      setForm((f) => ({ ...f, description: res.data.description || f.description, requirements: res.data.requirements || f.requirements }));
       toast.success('AI description generated!');
     } catch {
-      // Fallback to template
-      setForm((f) => ({
-        ...f,
-        description: `We are seeking a talented ${f.title} to join our ${f.department || 'team'}. The ideal candidate will bring strong expertise and a collaborative mindset.\n\nResponsibilities:\n- Lead key initiatives within the ${f.department || 'team'}\n- Collaborate cross-functionally to deliver high-quality results\n- Mentor junior team members and drive best practices\n\nRequirements:\n- 3+ years of relevant experience\n- Strong communication and problem-solving skills\n- Track record of delivering results`,
-      }));
+      setForm((f) => ({ ...f, description: `We are seeking a talented ${f.title} to join our ${f.department || 'team'}. The ideal candidate will bring strong expertise and a collaborative mindset.\n\nResponsibilities:\n- Lead key initiatives within the ${f.department || 'team'}\n- Collaborate cross-functionally to deliver high-quality results\n- Mentor junior team members\n\nRequirements:\n- 3+ years of relevant experience\n- Strong communication and problem-solving skills` }));
     } finally {
       setAiLoading(false);
     }
   };
 
+  const statusColor = (job) => (job.is_active === false || job.status === 'closed') ? 'rgba(107,114,128,0.2)' : 'rgba(34,197,94,0.15)';
+  const statusText = (job) => (job.is_active === false || job.status === 'closed') ? '#9ca3af' : '#4ade80';
+  const statusLabel = (job) => job.is_active === false ? 'closed' : (job.status || 'open');
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Jobs</h1>
+    <div style={{ color: 'rgba(255,255,255,0.9)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
+        <h1 style={{
+          fontSize: '2rem', fontWeight: 900,
+          background: 'linear-gradient(135deg, #a78bfa 0%, #3b82f6 50%, #22d3ee 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          letterSpacing: '-0.02em',
+        }}>Jobs</h1>
         <button
           onClick={() => openForm()}
-          aria-label="Create new job"
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-        >
-          + New Job
-        </button>
+          style={{
+            padding: '0.65rem 1.25rem',
+            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+            border: 'none', borderRadius: '12px',
+            color: 'white', fontWeight: 700, fontSize: '0.85rem',
+            cursor: 'pointer', transition: 'all 0.3s',
+            boxShadow: '0 0 20px rgba(59,130,246,0.3)',
+          }}
+        >+ New Job</button>
       </div>
 
       {!loading && jobs.length === 0 ? (
-        <EmptyState
-          icon="💼"
-          title="No jobs yet"
-          message="Create your first job posting to start receiving applications."
-          actionLabel="+ New Job"
-          onAction={() => openForm()}
-        />
+        <div style={{ ...glassCard, padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💼</div>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem' }}>No jobs yet</h3>
+          <p style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>Create your first job posting to start receiving applications.</p>
+          <button onClick={() => openForm()} style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>+ New Job</button>
+        </div>
       ) : (
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full">
+        <div style={{ ...glassCard, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Title</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Department</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Location</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Status</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Applicants</th>
-                <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">Actions</th>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                {['Title', 'Department', 'Location', 'Status', 'Applicants', 'Actions'].map((h, i) => (
+                  <th key={h} style={{ padding: '1rem', textAlign: i === 5 ? 'right' : 'left', fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonTableRows rows={5} cols={6} />
+                [1,2,3,4,5].map(i => (
+                  <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    {[1,2,3,4,5,6].map(j => (
+                      <td key={j} style={{ padding: '1rem' }}>
+                        <div style={{ height: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : (
-                jobs.map((job) => (
-                  <tr key={job.id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <Link to={`/jobs/${job.id}`} className="text-sm font-medium text-blue-600 hover:underline">
-                        {job.title}
-                      </Link>
+                jobs.map((job, idx) => (
+                  <tr key={job.id} style={{
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    transition: 'background 0.2s',
+                    cursor: 'default',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '0.9rem 1rem' }}>
+                      <Link to={`/jobs/${job.id}`} style={{ fontSize: '0.88rem', fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#93c5fd'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#60a5fa'}
+                      >{job.title}</Link>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{job.department}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{job.location}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
-                        (job.is_active !== false && job.status !== 'closed') ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {job.is_active === false ? 'closed' : (job.status || 'open')}
+                    <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)' }}>{job.department}</td>
+                    <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)' }}>{job.location}</td>
+                    <td style={{ padding: '0.9rem 1rem' }}>
+                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, background: statusColor(job), color: statusText(job), border: `1px solid ${statusText(job)}44` }}>
+                        {statusLabel(job)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{job.application_count ?? job.applicants ?? 0}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/apply/${job.id}`); toast.success('Apply link copied!'); }} aria-label={`Copy apply link for ${job.title}`} className="text-xs text-gray-500 hover:text-blue-600 mr-3">Copy Apply Link</button>
-                      <button onClick={() => openForm(job)} aria-label={`Edit ${job.title}`} className="text-xs text-gray-500 hover:text-blue-600 mr-3">Edit</button>
-                      <button onClick={() => handleDelete(job.id)} aria-label={`Delete ${job.title}`} className="text-xs text-gray-500 hover:text-red-600">Delete</button>
+                    <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)' }}>{job.application_count ?? job.applicants ?? 0}</td>
+                    <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
+                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/apply/${job.id}`); toast.success('Apply link copied!'); }} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', marginRight: '0.75rem' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#60a5fa'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+                      >Copy Link</button>
+                      <button onClick={() => openForm(job)} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', marginRight: '0.75rem' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#60a5fa'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+                      >Edit</button>
+                      <button onClick={() => handleDelete(job.id)} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+                      >Delete</button>
                     </td>
                   </tr>
                 ))
@@ -173,69 +204,58 @@ export default function Jobs() {
         </div>
       )}
 
+      {/* Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">{editingJob ? 'Edit Job' : 'New Job'}</h2>
-              <button onClick={() => setShowForm(false)} aria-label="Close form" className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+          <div style={{ ...glassCard, width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 80px rgba(0,0,0,0.6), 0 0 40px rgba(59,130,246,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{editingJob ? 'Edit Job' : 'New Job'}</h2>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
             </div>
-            <div className="p-4 space-y-4">
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label htmlFor="job-title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input id="job-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Title</label>
+                <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} style={inputStyle} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label htmlFor="job-dept" className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                  <input id="job-dept" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Department</label>
+                  <input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} style={inputStyle} />
                 </div>
                 <div>
-                  <label htmlFor="job-location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                  <input id="job-location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Location</label>
+                  <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} style={inputStyle} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label htmlFor="job-type" className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select id="job-type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm">
-                    <option>Full-time</option>
-                    <option>Part-time</option>
-                    <option>Contract</option>
-                    <option>Internship</option>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Type</label>
+                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={{ ...inputStyle, width: 'auto', width: '100%' }}>
+                    <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option>
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="job-salary" className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
-                  <input id="job-salary" value={form.salary} onChange={(e) => setForm({ ...form, salary: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. $100k-$130k" />
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Salary</label>
+                  <input value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} style={inputStyle} placeholder="e.g. $100k-$130k" />
                 </div>
               </div>
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="job-desc" className="block text-sm font-medium text-gray-700">Description</label>
-                  <button
-                    onClick={generateAIDescription}
-                    disabled={aiLoading || !form.title}
-                    aria-label="Generate description with AI"
-                    className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {aiLoading ? (
-                      <span role="status" aria-label="Generating">Generating...</span>
-                    ) : (
-                      'Generate with AI ✨'
-                    )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Description</label>
+                  <button onClick={generateAIDescription} disabled={aiLoading || !form.title} style={{ fontSize: '0.75rem', color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', opacity: aiLoading || !form.title ? 0.4 : 1 }}>
+                    {aiLoading ? 'Generating...' : '✨ Generate with AI'}
                   </button>
                 </div>
-                <textarea id="job-desc" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={6} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={6} style={{ ...inputStyle, resize: 'vertical' }} />
               </div>
               <div>
-                <label htmlFor="job-reqs" className="block text-sm font-medium text-gray-700 mb-1">Requirements</label>
-                <textarea id="job-reqs" value={form.requirements} onChange={(e) => setForm({ ...form, requirements: e.target.value })} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Key requirements for this role..." />
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Requirements</label>
+                <textarea value={form.requirements} onChange={e => setForm({ ...form, requirements: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Key requirements for this role..." />
               </div>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t">
-              <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
-              <button onClick={handleSave} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={() => setShowForm(false)} style={{ padding: '0.6rem 1.25rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
+              <button onClick={handleSave} style={{ padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 0 20px rgba(59,130,246,0.3)' }}>Save</button>
             </div>
           </div>
         </div>
