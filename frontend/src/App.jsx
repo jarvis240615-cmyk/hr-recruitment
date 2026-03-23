@@ -30,7 +30,7 @@ function ProtectedLayout() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter basename="/hr-recruitment">
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
           <Route path="/login" element={<Login />} />
