@@ -13,6 +13,7 @@ const CSS = `
 @keyframes shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
 @keyframes float { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes pulseDot { 0%,100% { transform:scale(1);opacity:1 } 50% { transform:scale(1.6);opacity:0.5 } }
 
 .stat-card-3d {
   position: relative;
@@ -191,8 +192,8 @@ function setupSpinningIcosahedron(scene) {
   return { mesh, tick: (t, m) => { m.rotation.y = t * 0.6; m.rotation.x = t * 0.3; } };
 }
 
-/* ─── Stat Card with mini 3D ─── */
-function StatCard3D({ title, value, subtitle, color, setupFn, delay = 0 }) {
+/* ─── Stat Card with mini 3D + live indicator ─── */
+function StatCard3D({ title, value, subtitle, color, setupFn, delay = 0, parallax = { x: 0, y: 0 } }) {
   const canvasRef = useRef(null);
   const displayValue = useCountUp(value, 1400);
   useMiniThree(canvasRef, setupFn);
@@ -203,8 +204,25 @@ function StatCard3D({ title, value, subtitle, color, setupFn, delay = 0 }) {
       style={{
         borderLeft: `4px solid ${color}`,
         animation: `slideInUp 0.6s cubic-bezier(.22,1,.36,1) ${delay}ms both`,
+        transform: `translateX(${parallax.x}px) translateY(${parallax.y}px)`,
+        transition: 'transform 0.15s ease',
       }}
     >
+      {/* Live indicator */}
+      <div style={{
+        position: 'absolute', top: '12px', left: '12px',
+        display: 'flex', alignItems: 'center', gap: '5px',
+        zIndex: 2,
+      }}>
+        <div style={{
+          width: '7px', height: '7px', borderRadius: '50%',
+          background: color,
+          boxShadow: `0 0 6px ${color}`,
+          animation: 'pulseDot 2s ease-in-out infinite',
+        }} />
+        <span style={{ fontSize: '0.58rem', color: color, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.8 }}>LIVE</span>
+      </div>
+
       <canvas
         ref={canvasRef}
         width={120}
@@ -219,7 +237,7 @@ function StatCard3D({ title, value, subtitle, color, setupFn, delay = 0 }) {
           pointerEvents: 'none',
         }}
       />
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'relative', zIndex: 1, marginTop: '1rem' }}>
         <p style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
           {title}
         </p>
@@ -521,7 +539,13 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ openJobs: 0, totalCandidates: 0, inInterview: 0, avgScore: 0 });
   const [pipeline, setPipeline] = useState(mockFunnelData);
   const [activity, setActivity] = useState(mockActivity);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const title = useTypingTitle('Dashboard', 90);
+
+  const handleMouseMove = useCallback((e) => {
+    const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    setMouse({ x: (e.clientX - cx) / cx, y: (e.clientY - cy) / cy });
+  }, []);
 
   useBackgroundScene();
 
@@ -595,7 +619,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div onMouseMove={handleMouseMove} style={{ position: 'relative', minHeight: '100vh' }}>
       {/* Background Three.js canvas */}
       <canvas
         id="dashboard-bg-canvas"
@@ -621,12 +645,12 @@ export default function Dashboard() {
           {title}<span style={{ animation: 'blink 1s step-end infinite', color: '#a78bfa' }}>|</span>
         </h1>
 
-        {/* Stat cards grid */}
+        {/* Stat cards grid with parallax */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
-          <StatCard3D title="Open Jobs" value={stats.openJobs} subtitle="Active positions" color="#3b82f6" setupFn={setupRotatingCube} delay={0} />
-          <StatCard3D title="Candidates" value={stats.totalCandidates} subtitle="All applications" color="#22c55e" setupFn={setupOrbitingDots} delay={100} />
-          <StatCard3D title="In Interview" value={stats.inInterview} subtitle="Currently interviewing" color="#f59e0b" setupFn={setupPulsingTorus} delay={200} />
-          <StatCard3D title="AI Score" value={stats.avgScore} subtitle="Average quality score" color="#8b5cf6" setupFn={setupSpinningIcosahedron} delay={300} />
+          <StatCard3D title="Open Jobs" value={stats.openJobs} subtitle="Active positions" color="#3b82f6" setupFn={setupRotatingCube} delay={0} parallax={{ x: mouse.x * -6, y: mouse.y * -4 }} />
+          <StatCard3D title="Candidates" value={stats.totalCandidates} subtitle="All applications" color="#22c55e" setupFn={setupOrbitingDots} delay={100} parallax={{ x: mouse.x * -4, y: mouse.y * -3 }} />
+          <StatCard3D title="In Interview" value={stats.inInterview} subtitle="Currently interviewing" color="#f59e0b" setupFn={setupPulsingTorus} delay={200} parallax={{ x: mouse.x * -5, y: mouse.y * -5 }} />
+          <StatCard3D title="AI Score" value={stats.avgScore} subtitle="Average quality score" color="#8b5cf6" setupFn={setupSpinningIcosahedron} delay={300} parallax={{ x: mouse.x * -3, y: mouse.y * -4 }} />
         </div>
 
         {/* Middle row */}

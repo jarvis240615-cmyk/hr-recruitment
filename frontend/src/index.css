@@ -1,1 +1,158 @@
 @import "tailwindcss";
+
+/* ── Global cursor glow ── */
+*, *::before, *::after { cursor: none !important; }
+
+#cursor-glow {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59,130,246,0.8) 0%, rgba(139,92,246,0.4) 50%, transparent 70%);
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: width 0.15s, height 0.15s, opacity 0.15s;
+  mix-blend-mode: screen;
+  filter: blur(2px);
+}
+
+#cursor-dot {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #60a5fa;
+  pointer-events: none;
+  z-index: 100000;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(59,130,246,0.9), 0 0 16px rgba(59,130,246,0.5);
+}
+
+/* ── Scanlines overlay ── */
+#scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99998;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  animation: scanlineMove 8s linear infinite;
+}
+
+/* ── Page transition ── */
+.page-enter {
+  animation: pageEnter 0.35s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* ── Global keyframes ── */
+@keyframes scanlineMove {
+  from { background-position: 0 0; }
+  to   { background-position: 0 100px; }
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 6px 2px rgba(34,197,94,0.6); }
+  50%       { box-shadow: 0 0 14px 5px rgba(34,197,94,0.9); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.5); opacity: 0.6; }
+}
+
+@keyframes borderPulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInDown {
+  from { opacity: 0; transform: translateY(-24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glowBorderSweep {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes particleBurst {
+  0%   { transform: scale(0) translate(0,0); opacity: 1; }
+  100% { transform: scale(1) translate(var(--tx), var(--ty)); opacity: 0; }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+
+@keyframes rotateBorder {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes liveRefresh {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shineSwipe {
+  0%   { left: -60%; }
+  100% { left: 120%; }
+}

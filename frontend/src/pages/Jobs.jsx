@@ -1,9 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import { mockJobs } from '../api/mockData';
-import EmptyState from '../components/EmptyState';
+
+const STYLE_ID = 'jobs-styles';
+const CSS = `
+@keyframes cardEnter { from { opacity:0; transform:translateY(30px) scale(0.96) } to { opacity:1; transform:translateY(0) scale(1) } }
+@keyframes glowSweep { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes fabPulse { 0%,100%{ box-shadow:0 0 20px rgba(59,130,246,0.5),0 0 40px rgba(59,130,246,0.2) } 50%{ box-shadow:0 0 30px rgba(59,130,246,0.8),0 0 60px rgba(139,92,246,0.4) } }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+`;
 
 const glassCard = {
   background: 'rgba(10,15,40,0.7)',
@@ -25,6 +32,83 @@ const inputStyle = {
   boxSizing: 'border-box',
 };
 
+function JobRow({ job, idx, onEdit, onDelete, onCopyLink }) {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [hov, setHov] = useState(false);
+  const rowRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    const rect = rowRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    setTilt({ x: ((e.clientY - cy) / (rect.height / 2)) * -3, y: ((e.clientX - cx) / (rect.width / 2)) * 3 });
+  };
+
+  const statusColor = (job.is_active === false || job.status === 'closed') ? '#9ca3af' : '#4ade80';
+  const statusBg = (job.is_active === false || job.status === 'closed') ? 'rgba(107,114,128,0.15)' : 'rgba(34,197,94,0.12)';
+  const statusLabel = job.is_active === false ? 'closed' : (job.status || 'open');
+
+  return (
+    <tr
+      ref={rowRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => { setHov(false); setTilt({ x: 0, y: 0 }); }}
+      style={{
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+        transform: hov ? `perspective(600px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` : 'none',
+        transition: hov ? 'box-shadow 0.2s' : 'transform 0.4s ease, box-shadow 0.4s ease',
+        background: hov ? 'rgba(59,130,246,0.05)' : 'transparent',
+        boxShadow: hov ? '0 4px 30px rgba(59,130,246,0.1)' : 'none',
+        animation: `cardEnter 0.5s cubic-bezier(.22,1,.36,1) ${idx * 80}ms both`,
+        position: 'relative',
+        cursor: 'none',
+      }}
+    >
+      {/* Glow border overlay */}
+      {hov && (
+        <td colSpan={6} style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(90deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1), rgba(34,211,238,0.1))',
+          backgroundSize: '200% 100%',
+          animation: 'glowSweep 1.5s ease infinite',
+          borderRadius: '4px',
+          zIndex: 0,
+        }} />
+      )}
+      <td style={{ padding: '0.9rem 1rem', position: 'relative', zIndex: 1 }}>
+        <Link to={`/jobs/${job.id}`} style={{ fontSize: '0.88rem', fontWeight: 600, color: '#60a5fa', textDecoration: 'none', transition: 'color 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#93c5fd'}
+          onMouseLeave={e => e.currentTarget.style.color = '#60a5fa'}
+        >{job.title}</Link>
+      </td>
+      <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', position: 'relative', zIndex: 1 }}>{job.department}</td>
+      <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', position: 'relative', zIndex: 1 }}>{job.location}</td>
+      <td style={{ padding: '0.9rem 1rem', position: 'relative', zIndex: 1 }}>
+        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, background: statusBg, color: statusColor, border: `1px solid ${statusColor}44` }}>
+          {statusLabel}
+        </span>
+      </td>
+      <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', position: 'relative', zIndex: 1 }}>{job.application_count ?? job.applicants ?? 0}</td>
+      <td style={{ padding: '0.9rem 1rem', textAlign: 'right', position: 'relative', zIndex: 1 }}>
+        <button onClick={() => onCopyLink(job.id)} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'none', marginRight: '0.75rem', transition: 'color 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#60a5fa'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+        >Copy Link</button>
+        <button onClick={() => onEdit(job)} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'none', marginRight: '0.75rem', transition: 'color 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#60a5fa'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+        >Edit</button>
+        <button onClick={() => onDelete(job.id)} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'none', transition: 'color 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+        >Delete</button>
+      </td>
+    </tr>
+  );
+}
+
 export default function Jobs() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,8 +116,14 @@ export default function Jobs() {
   const [editingJob, setEditingJob] = useState(null);
   const [form, setForm] = useState({ title: '', department: '', location: '', type: 'Full-time', salary: '', description: '', requirements: '' });
   const [aiLoading, setAiLoading] = useState(false);
+  const [fabHov, setFabHov] = useState(false);
 
-  useEffect(() => { loadJobs(); }, []);
+  useEffect(() => {
+    if (!document.getElementById(STYLE_ID)) {
+      const s = document.createElement('style'); s.id = STYLE_ID; s.textContent = CSS; document.head.appendChild(s);
+    }
+    loadJobs();
+  }, []);
 
   const loadJobs = async () => {
     setLoading(true);
@@ -41,11 +131,7 @@ export default function Jobs() {
       const res = await api.get('/api/jobs');
       const data = res.data.items || res.data;
       setJobs(Array.isArray(data) ? data : []);
-    } catch {
-      setJobs(mockJobs);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setJobs(mockJobs); } finally { setLoading(false); }
   };
 
   const openForm = (job = null) => {
@@ -84,9 +170,12 @@ export default function Jobs() {
       await api.delete(`/api/jobs/${id}`);
       toast.success('Job deleted');
       loadJobs();
-    } catch {
-      setJobs(jobs.filter((j) => j.id !== id));
-    }
+    } catch { setJobs(jobs.filter((j) => j.id !== id)); }
+  };
+
+  const handleCopyLink = (jobId) => {
+    navigator.clipboard.writeText(`${window.location.origin}/apply/${jobId}`);
+    toast.success('Apply link copied!');
   };
 
   const generateAIDescription = async () => {
@@ -97,15 +186,9 @@ export default function Jobs() {
       setForm((f) => ({ ...f, description: res.data.description || f.description, requirements: res.data.requirements || f.requirements }));
       toast.success('AI description generated!');
     } catch {
-      setForm((f) => ({ ...f, description: `We are seeking a talented ${f.title} to join our ${f.department || 'team'}. The ideal candidate will bring strong expertise and a collaborative mindset.\n\nResponsibilities:\n- Lead key initiatives within the ${f.department || 'team'}\n- Collaborate cross-functionally to deliver high-quality results\n- Mentor junior team members\n\nRequirements:\n- 3+ years of relevant experience\n- Strong communication and problem-solving skills` }));
-    } finally {
-      setAiLoading(false);
-    }
+      setForm((f) => ({ ...f, description: `We are seeking a talented ${f.title} to join our ${f.department || 'team'}. The ideal candidate will bring strong expertise and a collaborative mindset.\n\nResponsibilities:\n- Lead key initiatives within the ${f.department || 'team'}\n- Collaborate cross-functionally\n- Mentor junior team members\n\nRequirements:\n- 3+ years of relevant experience\n- Strong communication and problem-solving skills` }));
+    } finally { setAiLoading(false); }
   };
-
-  const statusColor = (job) => (job.is_active === false || job.status === 'closed') ? 'rgba(107,114,128,0.2)' : 'rgba(34,197,94,0.15)';
-  const statusText = (job) => (job.is_active === false || job.status === 'closed') ? '#9ca3af' : '#4ade80';
-  const statusLabel = (job) => job.is_active === false ? 'closed' : (job.status || 'open');
 
   return (
     <div style={{ color: 'rgba(255,255,255,0.9)', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -117,17 +200,6 @@ export default function Jobs() {
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           letterSpacing: '-0.02em',
         }}>Jobs</h1>
-        <button
-          onClick={() => openForm()}
-          style={{
-            padding: '0.65rem 1.25rem',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            border: 'none', borderRadius: '12px',
-            color: 'white', fontWeight: 700, fontSize: '0.85rem',
-            cursor: 'pointer', transition: 'all 0.3s',
-            boxShadow: '0 0 20px rgba(59,130,246,0.3)',
-          }}
-        >+ New Job</button>
       </div>
 
       {!loading && jobs.length === 0 ? (
@@ -135,7 +207,7 @@ export default function Jobs() {
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💼</div>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem' }}>No jobs yet</h3>
           <p style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>Create your first job posting to start receiving applications.</p>
-          <button onClick={() => openForm()} style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>+ New Job</button>
+          <button onClick={() => openForm()} style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'none' }}>+ New Job</button>
         </div>
       ) : (
         <div style={{ ...glassCard, overflow: 'hidden' }}>
@@ -160,43 +232,7 @@ export default function Jobs() {
                 ))
               ) : (
                 jobs.map((job, idx) => (
-                  <tr key={job.id} style={{
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    transition: 'background 0.2s',
-                    cursor: 'default',
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <td style={{ padding: '0.9rem 1rem' }}>
-                      <Link to={`/jobs/${job.id}`} style={{ fontSize: '0.88rem', fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#93c5fd'}
-                        onMouseLeave={e => e.currentTarget.style.color = '#60a5fa'}
-                      >{job.title}</Link>
-                    </td>
-                    <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)' }}>{job.department}</td>
-                    <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)' }}>{job.location}</td>
-                    <td style={{ padding: '0.9rem 1rem' }}>
-                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, background: statusColor(job), color: statusText(job), border: `1px solid ${statusText(job)}44` }}>
-                        {statusLabel(job)}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)' }}>{job.application_count ?? job.applicants ?? 0}</td>
-                    <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
-                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/apply/${job.id}`); toast.success('Apply link copied!'); }} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', marginRight: '0.75rem' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#60a5fa'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-                      >Copy Link</button>
-                      <button onClick={() => openForm(job)} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', marginRight: '0.75rem' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#60a5fa'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-                      >Edit</button>
-                      <button onClick={() => handleDelete(job.id)} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-                      >Delete</button>
-                    </td>
-                  </tr>
+                  <JobRow key={job.id} job={job} idx={idx} onEdit={openForm} onDelete={handleDelete} onCopyLink={handleCopyLink} />
                 ))
               )}
             </tbody>
@@ -204,13 +240,32 @@ export default function Jobs() {
         </div>
       )}
 
+      {/* Floating Action Button */}
+      <button
+        onClick={() => openForm()}
+        onMouseEnter={() => setFabHov(true)}
+        onMouseLeave={() => setFabHov(false)}
+        style={{
+          position: 'fixed', bottom: '2rem', right: '2rem',
+          width: '56px', height: '56px', borderRadius: '50%',
+          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+          border: 'none', color: 'white', fontSize: '1.5rem',
+          cursor: 'none', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fabPulse 2.5s ease-in-out infinite',
+          transform: fabHov ? 'scale(1.15) rotate(45deg)' : 'scale(1) rotate(0deg)',
+          transition: 'transform 0.3s cubic-bezier(.22,1,.36,1)',
+        }}
+        title="New Job"
+      >+</button>
+
       {/* Modal */}
       {showForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
-          <div style={{ ...glassCard, width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 80px rgba(0,0,0,0.6), 0 0 40px rgba(59,130,246,0.1)' }}>
+          <div style={{ ...glassCard, width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 80px rgba(0,0,0,0.6), 0 0 40px rgba(59,130,246,0.1)', animation: 'cardEnter 0.3s ease both' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{editingJob ? 'Edit Job' : 'New Job'}</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '1.5rem', cursor: 'none', lineHeight: 1 }}>&times;</button>
             </div>
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
@@ -230,7 +285,7 @@ export default function Jobs() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Type</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={{ ...inputStyle, width: 'auto', width: '100%' }}>
+                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={{ ...inputStyle }}>
                     <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option>
                   </select>
                 </div>
@@ -242,7 +297,7 @@ export default function Jobs() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Description</label>
-                  <button onClick={generateAIDescription} disabled={aiLoading || !form.title} style={{ fontSize: '0.75rem', color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', opacity: aiLoading || !form.title ? 0.4 : 1 }}>
+                  <button onClick={generateAIDescription} disabled={aiLoading || !form.title} style={{ fontSize: '0.75rem', color: '#60a5fa', background: 'none', border: 'none', cursor: 'none', opacity: aiLoading || !form.title ? 0.4 : 1 }}>
                     {aiLoading ? 'Generating...' : '✨ Generate with AI'}
                   </button>
                 </div>
@@ -254,8 +309,8 @@ export default function Jobs() {
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <button onClick={() => setShowForm(false)} style={{ padding: '0.6rem 1.25rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
-              <button onClick={handleSave} style={{ padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 0 20px rgba(59,130,246,0.3)' }}>Save</button>
+              <button onClick={() => setShowForm(false)} style={{ padding: '0.6rem 1.25rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'none', fontSize: '0.85rem' }}>Cancel</button>
+              <button onClick={handleSave} style={{ padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 700, cursor: 'none', fontSize: '0.85rem', boxShadow: '0 0 20px rgba(59,130,246,0.3)' }}>Save</button>
             </div>
           </div>
         </div>
