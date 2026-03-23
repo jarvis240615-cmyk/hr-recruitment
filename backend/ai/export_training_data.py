@@ -4,8 +4,6 @@ import json
 import sys
 from pathlib import Path
 
-import chromadb
-
 _CHROMA_PATH = str(Path(__file__).resolve().parent.parent.parent / "chroma_db")
 _COLLECTION_NAME = "hiring_decisions"
 
@@ -19,6 +17,7 @@ def export_training_data(output_path: str = "training_data.jsonl") -> int:
     Returns:
         Number of records exported.
     """
+    import chromadb
     client = chromadb.PersistentClient(path=_CHROMA_PATH)
     try:
         collection = client.get_collection(name=_COLLECTION_NAME)
