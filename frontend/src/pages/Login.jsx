@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import * as THREE from 'three';
 import api from '../api/axios';
 
@@ -342,6 +342,25 @@ export default function Login() {
         <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', textAlign: 'center', marginTop: '1rem' }}>
           Demo: enter any email/password to sign in
         </p>
+
+        {/* Footer nav */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1.25rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+          {[
+            { to: '/about', label: 'About' },
+            { to: '/contact', label: 'Contact' },
+            { to: '/privacy', label: 'Privacy Policy' },
+          ].map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.28)', textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.65)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.28)'}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

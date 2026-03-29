@@ -13,6 +13,9 @@ import CandidateDetail from './pages/CandidateDetail';
 import Analytics from './pages/Analytics';
 import Scorecards from './pages/Scorecards';
 import Apply from './pages/Apply';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Contact from './pages/Contact';
+import About from './pages/About';
 
 /* ── Cursor glow effect ── */
 function CursorGlow() {
@@ -104,6 +107,9 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/apply/:jobId" element={<Apply />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/about" element={<About />} />
 
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<Dashboard />} />
