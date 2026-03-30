@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="16" fill="#4F46E5"/>
+  <!-- Person/HR icon -->
+  <circle cx="16" cy="11" r="4" fill="white"/>
+  <path d="M8 24c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Checkmark/AI accent -->
+  <path d="M22 8l2 2 4-4" stroke="#A5F3FC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
