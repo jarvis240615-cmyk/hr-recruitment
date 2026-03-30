@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://backend-production-d90d.up.railway.app',
+  baseURL: 'https://ties-enzyme-antiques-hypothetical.trycloudflare.com',
 });
 
 api.interceptors.request.use((config) => {
